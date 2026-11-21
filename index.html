@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Реестр машинных идентичностей</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+:root{--bg:#f1ebe0;--card:#faf6ee;--ink:#2b2620;--mute:#6b6254;--line:#d9cfbd;--acc:#7a5a2e;--acc-ink:#fff;--hi:#9b2c1f;--hib:#f4d9d3;--mid:#7a5200;--midb:#f3e2b8;--lo:#2f5d8a;--lob:#dbe6ef;--ok:#3a6b3f;--okb:#dfead6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#1f1b16;--card:#29241d;--ink:#efe7d8;--mute:#b3a68f;--line:#443c30;--acc:#d3a96a;--acc-ink:#1f1b16;--hi:#f2a093;--hib:#4a2620;--mid:#e9c27a;--midb:#46350f;--lo:#a3c2e6;--lob:#1f3248;--ok:#a3d3a0;--okb:#25391f}}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 "Source Sans 3",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1040px;margin:0 auto;padding:20px 16px 48px}
+h1{font:600 2rem/1.15 Lora,Georgia,"Times New Roman",serif;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 16px}
+.warn{background:var(--midb);color:var(--mid);border:1px solid var(--mid);border-radius:6px;padding:10px 12px;margin-bottom:16px;font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button,select,input[type=date]{font:inherit;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+button{cursor:pointer}
+button.p{background:var(--acc);color:var(--acc-ink);border-color:var(--acc);font-weight:600}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,tr[tabindex]:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+textarea{width:100%;min-height:90px;font:13px/1.4 ui-monospace,Menlo,monospace;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);margin-top:10px}
+label{color:var(--mute);font-size:.92rem}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.sum div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.sum b{display:block;font-size:1.6rem}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:.93rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:600}
+tbody tr.r{cursor:pointer}
+tbody tr.r:hover{background:color-mix(in srgb,var(--acc) 8%,transparent)}
+.b{display:inline-block;padding:2px 8px;border-radius:99px;font-weight:600;font-size:.85rem;white-space:nowrap}
+.hi{background:var(--hib);color:var(--hi)}.mid{background:var(--midb);color:var(--mid)}.lo{background:var(--lob);color:var(--lo)}.ok{background:var(--okb);color:var(--ok)}
+.det td{background:color-mix(in srgb,var(--acc) 5%,transparent)}
+.det ul{margin:4px 0 0;padding-left:18px}
+.err{color:var(--hi);margin-top:8px}
+.met b{font-size:1.1rem}
+.hide{display:none}
+@media print{.noprint{display:none!important}body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+<h1>Реестр машинных идентичностей</h1>
+<p class="sub">Контроль владельцев, прав и сроков API-ключей и сервисных аккаунтов малой компании</p>
+<div class="warn"><b>Не вводите реальные секреты.</b> Приложение работает только с описанием доступов: название, владелец, права, даты. Значения ключей и паролей не нужны и отклоняются.</div>
+
+<section class="card noprint">
+<div class="row">
+<button class="p" id="demo">Открыть демо (40 записей)</button>
+<button id="pick">Загрузить CSV</button>
+<input type="file" id="file" accept=".csv,text/csv,text/plain" class="hide">
+<button id="tpl" class="hide">Скачать шаблон CSV</button>
+<label>Дата проверки <input type="date" id="ref"></label>
+</div>
+<textarea id="paste" placeholder="Или вставьте CSV сюда: название; тип; владелец; права; дата выпуска; срок действия; дата последней ротации" aria-label="Вставить CSV"></textarea>
+<div class="row" style="margin-top:8px"><button id="go">Проверить вставленный текст</button></div>
+<div id="msg" class="err" role="alert"></div>
+</section>
+
+<section id="res" class="hide">
+<div class="sum" id="sum"></div>
+<div class="card met hide" id="met"></div>
+<div class="row noprint" style="margin-bottom:10px">
+<label>Показать <select id="flt"><option value="">все записи</option><option value="Высокий">высокий риск</option><option value="Средний">средний риск</option><option value="Низкий">низкий риск</option><option value="В порядке">в порядке</option></select></label>
+<button id="exp" class="hide">Сохранить отчёт CSV</button>
+<button id="prn">Печать / PDF</button>
+</div>
+<div class="card wrap"><table>
+<thead><tr><th>Запись</th><th>Тип</th><th>Владелец</th><th>Риск</th><th>Что не так</th><th>Что исправить</th></tr></thead>
+<tbody id="tb"></tbody></table></div>
+<p class="sub">Баллы: нет владельца 3, широкие права 3, срок истёк 3, срок не задан 1, не менялся больше 180 дней 2. Сумма: 5 и больше высокий, 3–4 средний, 1–2 низкий. Пороги и слова для широких прав — допущения проекта.</p>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const STALE=180,DAY=864e5;
+const RULES={owner:{p:3,t:'Нет владельца',r:'Назначьте ответственного сотрудника'},wide:{p:3,t:'Слишком широкие права',r:'Сузьте права до необходимых'},expired:{p:3,t:'Срок действия истёк',r:'Замените секрет и задайте новый срок'},noexp:{p:1,t:'Срок действия не задан',r:'Задайте срок действия'},stale:{p:2,t:'Давно не менялся (больше '+STALE+' дней)',r:'Проведите ротацию секрета'}};
+const ALIAS={name:['название','name'],type:['тип','type'],owner:['владелец','owner','ответственный'],perms:['права','permissions','perms'],issued:['дата выпуска','issued','выпущен'],expires:['срок действия','expires','срок'],rotated:['дата последней ротации','rotated','ротация']};
+const REAL=/AKIA[0-9A-Z]{12,}|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|xox[bap]-|-----BEGIN|eyJ[A-Za-z0-9_-]{20,}|[A-Za-z0-9+\/=_-]{32,}/;
+const BADCOL=/secret|значени|парол|token|токен|password/i;
+let rows=[],truth=null,filt='';
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+$('ref').value=today();
+function parseDate(s){s=(s||'').trim();let m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m)return Date.UTC(+m[1],m[2]-1,+m[3]);m=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);return m?Date.UTC(+m[3],m[2]-1,+m[1]):null}
+function csv(text){const dl=(text.split('\n')[0].match(/;/g)||[]).length>(text.split('\n')[0].match(/,/g)||[]).length?';':',';const out=[];let row=[],c='',q=false;for(let i=0;i<text.length;i++){const ch=text[i];if(q){if(ch=='"'){if(text[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}else if(ch=='"')q=true;else if(ch==dl){row.push(c);c=''}else if(ch=='\n'||ch=='\r'){if(ch=='\r'&&text[i+1]=='\n')i++;row.push(c);c='';if(row.some(x=>x.trim()))out.push(row);row=[]}else c+=ch}row.push(c);if(row.some(x=>x.trim()))out.push(row);return out}
+function load(text){
+ const t=csv(text.replace(/^\ufeff/,''));if(t.length<2)throw'Нужен заголовок и хотя бы одна строка.';
+ if(REAL.test(text))throw'В файле найдена строка, похожая на настоящий ключ или токен. Файл отклонён: уберите значения секретов и оставьте только описание доступов.';
+ const h=t[0].map(x=>x.trim().toLowerCase()),idx={};
+ for(const k in ALIAS){idx[k]=h.findIndex(x=>ALIAS[k].includes(x))}
+ if(idx.name<0)throw'Не найден столбец «название».';
+ const skipped=h.filter(x=>BADCOL.test(x));
+ const r=t.slice(1).map(x=>{const o={};for(const k in idx)o[k]=idx[k]>=0?(x[idx[k]]||'').trim():'';return o});
+ return{r,skipped}}
+function evalRow(o,ref){const f=[];
+ if(!o.owner)f.push('owner');
+ if(/админ|полн|full|admin|owner|\*|\ball\b/i.test(o.perms))f.push('wide');
+ const e=parseDate(o.expires);if(e===null)f.push('noexp');else if(e<ref)f.push('expired');
+ const b=parseDate(o.rotated)??parseDate(o.issued);if(b===null||(ref-b)/DAY>STALE)f.push('stale');
+ const sc=f.reduce((a,k)=>a+RULES[k].p,0);
+ const lv=sc>=5?'Высокий':sc>=3?'Средний':sc>=1?'Низкий':'В порядке';
+ const top=f.slice().sort((a,b)=>RULES[b].p-RULES[a].p)[0];
+ return{f,sc,lv,rec:top?RULES[top].r+(f.length>1?' (и ещё '+(f.length-1)+')':''):'Действий не требуется'}}
+const CL={'Высокий':'hi','Средний':'mid','Низкий':'lo','В порядке':'ok'};
+function render(){
+ const ref=parseDate($('ref').value)??parseDate(today());
+ const ev=rows.map((o,i)=>({o,i,...evalRow(o,ref)})).sort((a,b)=>b.sc-a.sc||a.i-b.i);
+ const cnt=l=>ev.filter(e=>e.lv==l).length;
+ $('sum').innerHTML=[['Всего записей',ev.length],['С проблемами',ev.filter(e=>e.sc>0).length],['Высокий риск',cnt('Высокий')],['Средний риск',cnt('Средний')]].map(x=>'<div>'+x[0]+'<b>'+x[1]+'</b></div>').join('');
+ if(truth){let pairs=0,found=0,clean=0,fp=0;ev.forEach(e=>{const t=truth[e.i]||[];pairs+=t.length;found+=t.filter(k=>e.f.includes(k)).length;if(!t.length){clean++;if(e.f.length)fp++}});
+  $('met').classList.remove('hide');$('met').innerHTML='Проверка метрики на демо-наборе: найдено заложенных проблем <b>'+found+' из '+pairs+' ('+Math.round(found/pairs*100)+'%)</b>, ложных срабатываний на чистых записях <b>'+fp+' из '+clean+' ('+Math.round(fp/clean*100)+'%)</b>. Цель: не меньше 90% и не больше 10%. Набор проверяет пограничные случаи: ротация ровно 180 дней назад и срок до завтра не считаются нарушением.'}else $('met').classList.add('hide');
+ $('tb').innerHTML=ev.filter(e=>!filt||e.lv==filt).map(e=>'<tr class="r" tabindex="0" data-i="'+e.i+'"><td>'+esc(e.o.name)+'</td><td>'+esc(e.o.type)+'</td><td>'+(esc(e.o.owner)||'—')+'</td><td><span class="b '+CL[e.lv]+'">'+e.lv+', '+e.sc+'</span></td><td>'+(e.f.map(k=>RULES[k].t).join('; ')||'—')+'</td><td>'+esc(e.rec)+'</td></tr><tr class="det hide" id="d'+e.i+'"><td colspan="6"><b>Права:</b> '+(esc(e.o.perms)||'—')+'. <b>Выпущен:</b> '+(esc(e.o.issued)||'—')+'. <b>Срок:</b> '+(esc(e.o.expires)||'не задан')+'. <b>Ротация:</b> '+(esc(e.o.rotated)||'—')+(e.f.length?'<ul>'+e.f.map(k=>'<li>'+RULES[k].t+': '+RULES[k].p+' б. Что делать: '+RULES[k].r+'</li>').join('')+'</ul>':'')+'</td></tr>').join('');
+ $('res').classList.remove('hide');window._ev=ev}
+function show(text,isDemo){$('msg').textContent='';try{const x=load(text);rows=x.r;truth=isDemo?TRUTH:null;filt='';$('flt').value='';render();if(x.skipped.length)$('msg').textContent='Столбцы со значениями секретов проигнорированы: '+x.skipped.join(', ')+'.'}catch(e){$('msg').textContent=String(e)}}
+// Демо-набор: 40 записей, 15 с заложенными проблемами (25 пар «запись — правило»)
+const SV=['Платёжный шлюз','CRM','Почтовая рассылка','Резервное копирование','Сайт: заказы','Склад','Бухгалтерия','Мониторинг','Чат-бот','Аналитика'],OW=['Иванов','Петрова','Сидоров','Кузнецова','Орлов','Смирнова'],PL=['чтение','запись','чтение и запись'];
+const PLANT={0:['owner'],1:['wide'],2:['expired'],3:['stale'],4:['noexp'],5:['owner','wide','stale'],6:['expired','stale'],7:['owner','noexp'],8:['wide','stale'],9:['owner','expired'],10:['wide','noexp'],11:['stale','noexp'],12:['owner','wide'],13:['expired'],14:['wide','expired']};
+const TRUTH={};
+const DEMO=(()=>{const L=[['название','тип','владелец','права','дата выпуска','срок действия','дата последней ротации']];
+ for(let i=0;i<40;i++){const p=PLANT[i]||[];TRUTH[i]=p;let t=i%3==2?'сервисный аккаунт':i%7==0?'ИИ-агент':'API-ключ',o=OW[i%6],pm=PL[i%3],iss='2025-0'+(1+i%9)+'-01',ex='2027-0'+(1+i%9)+'-15',ro='2026-0'+(6+i%4)+'-10';
+  if(i==15)ro='2026-05-25';if(i==16)ex='2026-11-22';
+  if(p.includes('owner'))o='';if(p.includes('wide'))pm='администратор';if(p.includes('expired'))ex='2026-09-30';if(p.includes('noexp'))ex='';if(p.includes('stale'))ro='2025-03-01';
+  L.push([SV[i%10]+(i<10?'':' '+(Math.floor(i/10)+1)),t,o,pm,iss,ex,ro])}
+ return L.map(r=>r.join(';')).join('\n')})();
+$('demo').onclick=()=>{$('ref').value='2026-11-21';show(DEMO,true)};
+$('pick').onclick=()=>$('file').click();
+$('file').onchange=e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=()=>show(r.result,false);r.readAsText(f)}};
+$('go').onclick=()=>show($('paste').value,false);
+$('ref').onchange=()=>rows.length&&render();
+$('flt').onchange=e=>{filt=e.target.value;render()};
+$('prn').onclick=()=>window.print();
+$('tb').onclick=e=>{const r=e.target.closest('tr.r');if(r)$('d'+r.dataset.i).classList.toggle('hide')};
+$('tb').onkeydown=e=>{if(e.key=='Enter'||e.key==' '){const r=e.target.closest('tr.r');if(r){e.preventDefault();$('d'+r.dataset.i).classList.toggle('hide')}}};
+let DL=null;
+(async()=>{try{DL=window.claude&&await claude.use('downloads')}catch(e){}
+ $('exp').classList.remove('hide');$('tpl').classList.remove('hide')})();
+const q=v=>{let s=String(v??'');if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'};
+async function save(name,data){try{if(DL)await DL.save({filename:name,data:'\ufeff'+data});else{const u=URL.createObjectURL(new Blob(['\ufeff'+data],{type:'text/csv;charset=utf-8'})),l=document.createElement('a');l.href=u;l.download=name;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}}catch(e){if(e&&e.code!=='declined')$('msg').textContent='Не удалось сохранить файл. Используйте «Печать / PDF».'}}
+$('exp').onclick=()=>save('otchet-riskov.csv',[['название','тип','владелец','риск','баллы','что не так','что исправить']].concat((window._ev||[]).map(e=>[e.o.name,e.o.type,e.o.owner,e.lv,e.sc,e.f.map(k=>RULES[k].t).join('; '),e.rec])).map(r=>r.map(q).join(';')).join('\n'));
+$('tpl').onclick=()=>save('shablon-inventarya.csv',DEMO.split('\n').slice(0,4).join('\n'));
+</script>
+</body>
+</html>
